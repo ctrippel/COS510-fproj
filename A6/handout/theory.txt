@@ -1,1 +1,25 @@
 Typing Rules for the Pi Calculus:
+
+------------ (T-P0)
+S;G |- 0 wf
+
+S;G |-Q1 wf          S;G |-Q2 wf
+-------------------------------- (T-P2)
+S;G |-Q1|Q2 wf
+
+S;G |-Q wf         x not in S;G
+-------------------------------- (T-P2)
+S;G |- new x:t;Q wf
+
+S;G |-Q wf  S;G |-e1:(Chan t)  S;G |-e2:t
+---------------------------------------------------------------- (T-P3)
+S;G |-send e1(e2);Q wf 
+
+
+S;G |-Q wf  S |-e:(Chan t)  S |-pat:t --> G
+---------------------------------------------------------------- (T-P4)
+S;G |-rec e(pat);Q wf
+
+S;G |-rec e(pat);Q wf
+----------------------- (T-P5)
+S;G |-rec! e(pat);Q wf
