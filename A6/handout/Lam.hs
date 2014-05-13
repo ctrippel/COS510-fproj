@@ -144,7 +144,31 @@ typeTrans (LTArrow t1 t2) = TTup [TChan (typeTrans t1), TChan (typeTrans t2)]
 
 -- Second, implement your compiler
 compile_lam :: IO Name -> Name -> Gamma -> Lam -> IO (LTyp, Pi)
-compile_lam = undefined
+compile_lam c ch g LUnit = do
+  return (LTUnit, Out ch unitE)
+compile_lam c ch g (LVar x) = do
+  tp <- case type_of g (LVar x) of
+    Good t -> return t
+    Bad e -> error e
+  return (tp, Out ch (EVar x))
+compile_lam c ch g (LAbs x t1 e ) = do
+  (t2, q2) <- compile_lam c "n2" (M.insert x t1 g) e
+  tp <- return $ LTArrow t1 t2
+  q1 <- return $ New "n1" (TChan (typeTrans t1)) ( --fresh variables
+    New "n2" (TChan (typeTrans t2)) ( --fresh variables
+       Out ch (ETup [EVar "n1", EVar "n2"]) :|:
+       Inp "n1" (PVar x) q2))
+  return (tp, q1) -- choose a fresh name --Check the channel name
+compile_lam c ch g (e1 :@: e2 ) = do
+  (t2, q2) <- compile_lam c "temp_channel" g e2
+  (t1, q1) <- compile_lam c ch g e1
+  tp <- case type_of g (e1 :@: e2 ) of
+    Good t -> return t
+    Bad e -> error e
+  return (tp, New "temp_channel" (typeTrans t2) (q1 :|: q2))
+compile_lam c ch g (LEff f e) = do
+  (t,q) <- compile_lam c ch g e
+  return (t, Embed (\_ -> f) q)
 
 start_lam :: Lam -> IO ()
 start_lam e = do
